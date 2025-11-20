@@ -1,13 +1,583 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Улыбни Сбер • Квест</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --sber: #00a650;
+      --sber-dark: #00843d;
+      --gold: #ffd700;
+      --gold-gradient: linear-gradient(135deg, #ffb800, #ffd700, #ffea80);
+      --light: #e6f4ea;
+      --bg-gradient: linear-gradient(135deg, #f0f9f3 0%, #d4efe0 50%, #b8e6cd 100%);
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-gradient);
+      color: #1e1e1e;
+      min-height: 100dvh;
+      padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+      overflow-x: hidden;
+    }
+
+    .container { max-width: 500px; margin: 0 auto; padding: 0 16px; padding-bottom: 90px; }
+
+    h1 {
+      text-align: center;
+      font-size: 30px;
+      color: var(--sber-dark);
+      margin: 20px 0 6px;
+      font-weight: 900;
+    }
+    .subtitle {
+      text-align: center;
+      color: #555;
+      font-size: 15px;
+      margin-bottom: 24px;
+    }
+
+    /* Профиль в шапке */
+    .profile {
+      background: white;
+      border-radius: 24px;
+      padding: 20px;
+      margin: 0 0 24px;
+      box-shadow: 0 10px 40px rgba(0,166,80,0.18);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .avatar {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      background: var(--sber);
+      color: white;
+      font-size: 32px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 15px rgba(0,166,80,0.3);
+    }
+    .rank-info {
+      flex: 1;
+      margin-left: 16px;
+    }
+    .rank {
+      font-size: 19px;
+      font-weight: 800;
+      color: var(--sber-dark);
+    }
+    .to-next {
+      font-size: 13px;
+      color: #666;
+      margin-top: 4px;
+    }
+    .points {
+      font-size: 38px;
+      font-weight: 900;
+      color: var(--sber);
+      text-shadow: 0 2px 10px rgba(0,166,80,0.2);
+    }
+
+    /* КРАСИВЫЙ БЛОК С РАНГАМИ В ЛИЧНОМ КАБИНЕТЕ */
+    .ranks-progress {
+      background: linear-gradient(135deg, rgba(0,166,80,0.12), rgba(0,166,80,0.05));
+      border: 2px solid rgba(0,166,80,0.15);
+      border-radius: 24px;
+      padding: 20px;
+      margin: 24px 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .ranks-progress::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 4px;
+      background: var(--gold-gradient);
+      border-radius: 2px 2px 0 0;
+    }
+    .ranks-title {
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--sber-dark);
+      text-align: center;
+      margin-bottom: 20px;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .ranks-list {
+      display: flex;
+      align-items: flex-end;
+      position: relative;
+      padding: 0 8px;
+      justify-content: center;
+    }
+    .rank-item {
+      text-align: center;
+      flex: 1;
+      position: relative;
+      z-index: 2;
+    }
+    .rank-item.active .rank-circle {
+      background: var(--gold-gradient);
+      color: #8B5A00;
+      transform: scale(1.25);
+      box-shadow: 0 0 30px rgba(255,215,0,0.6);
+    }
+    .rank-item.active .rank-label {
+      font-weight: 900;
+      color: var(--sber-dark);
+      font-size: 15px;
+    }
+    .rank-circle {
+      width: 54px; height: 54px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.9);
+      border: 4px solid #ddd;
+      margin: 0 auto 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      backdrop-filter: blur(4px);
+    }
+    .rank-label {
+      font-size: 11px;
+      color: #666;
+      line-height: 1.3;
+      transition: all 0.3s;
+    }
+    .rank-points {
+      font-size: 12px;
+      font-weight: bold;
+      color: var(--sber-dark);
+      margin-top: 4px;
+    }
+
+    /* Прогресс-линия между рангами */
+    .progress-line {
+      position: absolute;
+      top: 15px;
+      left: 15%;
+      right: 15%;
+      height: 6px;
+      background: #ddd;
+      border-radius: 3px;
+      overflow: hidden;
+      z-index: 1;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--gold-gradient);
+      width: 0%;
+      border-radius: 3px;
+      transition: width 0.8s ease;
+    }
+
+    .card { background: white; border-radius: 24px; padding: 20px; margin: 16px 0; box-shadow: 0 8px 30px rgba(0,0,0,0.1); display: none; }
+    .card.active { display: block; animation: fadeIn 0.5s; }
+    @keyframes fadeIn { from {opacity:0; transform:translateY(15px)} to {opacity:1; transform:none} }
+
+    .mission {
+      background: #f8fff9;
+      border: 2px solid #d4f0dd;
+      border-radius: 20px;
+      padding: 18px;
+      margin-bottom: 16px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s;
+    }
+    .mission:active { transform: scale(0.98); }
+    .mission.legendary {
+      background: var(--gold-gradient);
+      color: white;
+      border: none;
+      box-shadow: 0 10px 30px rgba(255,183,0,0.4);
+    }
+    .mission button {
+      background: var(--sber);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 14px;
+      font-weight: bold;
+      float: right;
+      margin-top: 12px;
+      font-size: 15px;
+    }
+    .mission.legendary button {
+      background: white;
+      color: #b8860b;
+    }
+
+    .nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: white;
+      display: flex;
+      padding: 12px 20px env(safe-area-inset-bottom);
+      box-shadow: 0 -8px 30px rgba(0,0,0,0.12);
+      border-radius: 24px 24px 0 0;
+      backdrop-filter: blur(10px);
+      z-index: 100;
+    }
+    .nav-btn {
+      flex: 1;
+      padding: 14px;
+      text-align: center;
+      font-size: 26px;
+      border-radius: 18px;
+      transition: all 0.3s;
+    }
+    .nav-btn.active {
+      background: var(--sber);
+      color: white;
+      transform: scale(1.1);
+      box-shadow: 0 6px 20px rgba(0,166,80,0.3);
+    }
+
+    .success {
+      text-align: center;
+      padding: 50px 20px;
+      background: white;
+      border-radius: 24px;
+      margin: 30px 16px;
+      border: 4px solid var(--sber);
+      box-shadow: 0 15px 40px rgba(0,166,80,0.2);
+      display: none;
+    }
+    .confetti { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:999; }
+        .overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+      background: rgba(0,0,0,0.75); backdrop-filter: blur(10px);
+      z-index: 1000; display: none; align-items: center; justify-content: center; 
+      padding: 20px; transition: opacity 0.3s;
+    }
+    .modal {
+      background: white; border-radius: 24px; width: 100%; max-width: 420px; 
+      padding: 24px; max-height: 95vh; overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .close-btn { 
+      float: right; font-size: 32px; cursor: pointer; color: #aaa; 
+      line-height: 1; margin-top: -8px;
+    }
+    .close-btn:hover { color: #000; }
+    .btn {
+      background: var(--sber); color: white; border: none; padding: 16px; border-radius: 16px; font-size: 17px; font-weight: 700; width: 100%; margin: 12px 0; cursor: pointer;
+    }
+    .btn-dark { background: var(--sber-dark); }
+  </style>
 </head>
 <body>
-    <div class="Main">
-        Lorem ipsum dolor sit amet consectetur adipisicing elit. Earum, temporibus ad mollitia hic vel repudiandae sit labore quaerat voluptatum id quisquam deleniti officia dicta harum sapiente, praesentium recusandae quas et?
+  <div class="container">
+
+    <h1>Улыбни Сбер 😄</h1>
+    <p class="subtitle">Охоться за терминалами и стань Генералом Улыбки!</p>
+
+    <div class="profile">
+      <div style="display:flex; align-items:center; gap:16px;">
+        <div class="avatar" id="avatar">А</div>
+        <div class="rank-info">
+          <div class="rank" id="rank">Инженер улыбки 🛠️</div>
+          <div class="to-next">До следующего — <span id="toNext">460</span> баллов</div>
+        </div>
+      </div>
+      <div class="points" id="points">340</div>
     </div>
+
+    <!-- Главный экран -->
+    <div id="homeScreen" class="card active">
+
+      <div class="mission legendary">
+        <b>🔥 ЛЕГЕНДАРНАЯ МИССИЯ</b><br>
+        Первый терминал в метро!<br>
+        <b style="font-size:20px;">+500 баллов</b>
+        <button onclick="openMission('legendary', 500)">Выполнить</button>
+      </div>
+
+      <div class="mission">
+        <b>Охотник за стеклом 🕵️‍♂️</b><br>
+        Найди терминал за стеклом<br>
+        <b>+70 баллов</b>
+        <button onclick="openMission('glass', 70)">Выполнить</button>
+      </div>
+
+      <div class="mission">
+        <b>Ежедневная улыбка 😊</b><br>
+        Сделай фото любого терминала<br>
+        <b>+15 баллов</b>
+        <button onclick="openMission('daily', 15)">Выполнить</button>
+      </div>
+    </div>
+
+    <!-- Личный кабинет с КРУТЫМ прогрессом рангов -->
+    <div id="profileScreen" class="card">
+      <h2 style="text-align:center; margin-bottom:20px;">Личный кабинет</h2>
+      
+      <div style="text-align:center; padding:20px 0;">
+        <div class="avatar" style="width:130px; height:130px; font-size:68px; margin:0 auto 20px; box-shadow:0 8px 30px rgba(0,166,80,0.3);">А</div>
+        <div class="rank" style="font-size:28px; margin:12px 0;" id="profileRank">Инженер улыбки 🛠️</div>
+        <div style="font-size:42px; font-weight:900; color:var(--sber); margin:20px 0;" id="profilePoints">340</div>
+      </div>
+
+      <!-- 🔥 КРАСИВЫЙ ПРОГРЕСС РАНГОВ 🔥 -->
+      <div class="ranks-progress">
+        <div class="ranks-title">📈 Путь к званию Генерала Улыбки</div>
+        
+        <div class="progress-line"><div class="progress-fill" id="progressFill"></div></div>
+        
+        <div class="ranks-list">
+          <div class="rank-item">
+            <div class="rank-circle">👶</div>
+            <div class="rank-label">Новичок</div>
+          </div>
+          <div class="rank-item">
+            <div class="rank-circle">😄</div>
+            <div class="rank-label">Разведчик<br>улыбки</div>
+            <div class="rank-points">100</div>
+          </div>
+          <div class="rank-item active">
+            <div class="rank-circle">🛠️</div>
+            <div class="rank-label">Инженер<br>улыбки</div>
+            <div class="rank-points">300</div>
+          </div>
+          <div class="rank-item">
+            <div class="rank-circle">🚢</div>
+            <div class="rank-label">Капитан<br>эквайринга</div>
+            <div class="rank-points">800</div>
+          </div>
+          <div class="rank-item">
+            <div class="rank-circle">⭐</div>
+            <div class="rank-label">Генерал<br>Улыбки</div>
+            <div class="rank-points">2000</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn" style="background:var(--sber); color:white; padding:16px; border-radius:16px; font-size:17px; font-weight:700; width:100%; margin-top:20px; border-color: white;"
+              onclick="tg.showPopup({title:'Пригласить друга', message:'Поделись ссылкой и получи +100 баллов за друга!', buttons:[{text:'Поделиться', type:'default'}]})">
+        🎉 Пригласить друга (+100 баллов)
+      </button>
+    </div>
+
+    <!-- Лидерборд (оставил как было, но можно тоже улучшить) -->
+    <div id="leaderboardScreen" class="card">
+      <h2 style="text-align:center;">🏆 Топ России</h2>
+      <div style="background:#fff4e0; padding:20px; border-radius:20px; text-align:center; line-height:2; font-size:16px;">
+        🥇 @max_smile — 1240<br>
+        🥈 @anna_quest — 1180<br>
+        🥉 @dmitry_sber — 980<br>
+        4. @katya_pay — 850<br>
+        <b style="color:var(--sber); font-size:18px;">5. Ты — <span id="leaderPoints">340</span> баллов 🔥</b>
+      </div>
+    </div>
+
+    <div id="successScreen" class="success">
+      <h2 style="font-size:28px; margin-bottom:16px;">Поздравляем! 🎉</h2>
+      <p style="font-size:22px; color:var(--sber);">+<span id="addedPoints">15</span> баллов начислено!</p>
+      <p style="margin-top:16px; color:#555;">Ты делаешь оплату улыбкой лучше для всех 😄</p>
+    </div>
+  </div>
+
+    <!-- Полноценный оверлей с формой -->
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <span class="close-btn" onclick="closeOverlay()">×</span>
+      <h2 id="missionTitle" style="text-align:center; margin-bottom:20px;">Миссия</h2>
+      
+      <form id="missionForm">
+        <select required style="width:100%; padding:14px; margin:10px 0; border:2px solid #ddd; border-radius:14px; font-size:16px;">
+          <option value="">Выберите тип проблемы</option>
+          <option>Терминал за стеклом</option>
+          <option>Терминал слишком низко</option>
+          <option>Нет оплаты улыбкой</option>
+          <option>Другое</option>
+        </select>
+        
+        <input type="text" placeholder="Магазин / адрес" required style="width:100%; padding:14px; margin:10px 0; border:2px solid #ddd; border-radius:14px; font-size:16px;">
+        <input type="text" placeholder="Город" required style="width:100%; padding:14px; margin:10px 0; border:2px solid #ddd; border-radius:14px; font-size:16px;">
+        
+        <textarea placeholder="Комментарий (необязательно)" style="width:100%; padding:14px; margin:10px 0; border:2px solid #ddd; border-radius:14px; font-size:16px; height:90px; resize:none;"></textarea>
+        
+        <button type="button" class="btn" id="takePhoto" style="background:var(--sber-dark); margin:16px 0;">
+          📸 Прикрепить фото терминала
+        </button>
+        
+        <div id="photoPreview" style="display:none; margin:16px 0; border-radius:16px; overflow:hidden; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+          <img id="previewImg" style="width:100%; display:block;">
+          <div style="padding:10px; text-align:center; background:#f0f0f0; color:#666; font-size:14px;">
+            Фото прикреплено ✓ Нажмите "Отправить" для получения баллов
+          </div>
+        </div>
+        
+        <button type="submit" class="btn" style="background:var(--sber); margin-top:10px;">
+          Отправить и получить баллы ✅
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="nav">
+    <div class="nav-btn active" onclick="show('homeScreen')">🏠</div>
+    <div class="nav-btn" onclick="show('leaderboardScreen')">🏆</div>
+    <div class="nav-btn" onclick="show('profileScreen')">👤</div>
+  </div>
+
+  <canvas id="confetti" class="confetti"></canvas>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.expand(); tg.ready();
+
+    let points = 340;
+    let currentBonus = 0; 
+    const ranks = [
+      { name: "Новичок", emoji: "👶", threshold: 0 },
+      { name: "Разведчик улыбки", emoji: "😄", threshold: 100 },
+      { name: "Инженер улыбки 🛠️", emoji: "🛠️", threshold: 300 },
+      { name: "Капитан эквайринга", emoji: "🚢", threshold: 800 },
+      { name: "Генерал Улыбки ⭐", emoji: "⭐", threshold: 2000 }
+    ];
+
+    function updateRankProgress() {
+      let currentRankIndex = 0;
+      let nextThreshold = ranks[1].threshold;
+
+      for (let i = 0; i < ranks.length; i++) {
+        if (points >= ranks[i].threshold) {
+          currentRankIndex = i;
+        }
+      }
+
+      const currentRank = ranks[currentRankIndex];
+      const nextRank = ranks[currentRankIndex + 1] || ranks[ranks.length - 1];
+
+      // Обновляем тексты
+      document.getElementById('rank').textContent = currentRank.name;
+      document.getElementById('profileRank').textContent = currentRank.name;
+      document.getElementById('toNext').textContent = nextRank.threshold - points;
+
+      // Подсвечиваем активный ранг
+      document.querySelectorAll('.rank-item').forEach((el, i) => {
+        el.classList.toggle('active', i === currentRankIndex);
+      });
+
+      // Заполняем прогресс-бар
+      const progressPercent = currentRankIndex === ranks.length - 1 
+        ? 100 
+        : (points - currentRank.threshold) / (nextRank.threshold - currentRank.threshold) * 100;
+      
+      const fillWidth = (currentRankIndex / (ranks.length - 1)) * 100 + (progressPercent / (ranks.length - 1));
+      document.getElementById('progressFill').style.width = fillWidth + '%';
+    }
+
+    function updateAll() {
+      document.getElementById('points').textContent = points;
+      document.getElementById('profilePoints').textContent = points;
+      document.getElementById('leaderPoints').textContent = points;
+      document.getElementById('avatar').textContent = (tg.initDataUnsafe.user?.first_name || 'А')[0].toUpperCase();
+      updateRankProgress();
+    }
+
+
+    function show(screen) {
+      document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+      document.getElementById(screen).classList.add('active');
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      
+      // Подсвечиваем правильные кнопки
+      if (screen === 'homeScreen') {
+        document.querySelectorAll('.nav-btn')[0].classList.add('active'); // 🏠
+      } else if (screen === 'leaderboardScreen') {
+        document.querySelectorAll('.nav-btn')[1].classList.add('active');
+      } else if (screen === 'profileScreen') {
+        document.querySelectorAll('.nav-btn')[2].classList.add('active');
+      }
+      
+      document.getElementById('successScreen').style.display = 'none';
+      closeOverlay();
+    }
+
+    function openMission(type, bonus) {
+      currentBonus = bonus;
+      const titles = { legendary: '🔥 Легендарная миссия', glass: 'Охотник за стеклом', daily: 'Ежедневная улыбка' };
+      document.getElementById('missionTitle').textContent = titles[type];
+      document.getElementById('overlay').style.display = 'flex';
+    }
+
+    function closeOverlay() {
+      document.getElementById('overlay').style.display = 'none';
+      document.getElementById('photoPreview').style.display = 'none';
+    }
+
+    // Фото и отправка формы (без изменений)
+    document.getElementById('takePhoto').onclick = () => {
+      const input = document.createElement('input');
+      input.type = 'file'; input.accept = 'image/*'; input.capture = 'environment';
+      input.onchange = e => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = ev => {
+            document.getElementById('previewImg').src = ev.target.result;
+            document.getElementById('photoPreview').style.display = 'block';
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+      input.click();
+    };
+
+    document.getElementById('missionForm').onsubmit = e => {
+      e.preventDefault();
+      points += currentBonus;
+      document.getElementById('addedPoints').textContent = currentBonus;
+
+      createConfetti();
+      closeOverlay();
+      document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+      document.getElementById('successScreen').style.display = 'block';
+
+      setTimeout(() => {
+        updateAll();
+        show('homeScreen');
+      }, 2500);
+    };
+
+    function createConfetti() {
+      const canvas = document.getElementById('confetti');
+      const ctx = canvas.getContext('2d');
+      canvas.width = innerWidth; canvas.height = innerHeight;
+      const pieces = [];
+      const colors = ['#00a650','#ffd700','#00d66f','#ffffff'];
+
+      for(let i=0;i<200;i++){
+        pieces.push({x:Math.random()*canvas.width, y:-20, size:Math.random()*10+5, speed:Math.random()*6+4, color:colors[Math.floor(Math.random()*colors.length)], rot:0, spin:Math.random()*10-5});
+      }
+
+      function anim(){
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        pieces.forEach(p=>{
+          p.y += p.speed; p.rot += p.spin;
+          ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot*Math.PI/180);
+          ctx.fillStyle = p.color; ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size*3);
+          ctx.restore();
+        });
+        requestAnimationFrame(anim);
+      }
+      anim();
+      setTimeout(()=>{canvas.width=1;},5000);
+    }
+
+    updateAll();
+  </script>
 </body>
 </html>
